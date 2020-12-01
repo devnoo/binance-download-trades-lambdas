@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "download-trades-lambdas"
+version = "0.1.0"
+description = ""
+authors = ["Job <jgdenoo@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+python-binance = "^0.7.5"
+boto3 = "^1.16.26"
+pandas = "^1.1.4"
+pyarrow = "^2.0.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+rope = "^0.18.0"
+autopep8 = "^1.5.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,83 @@
+service: download-trades
+frameworkVersion: "2"
+custom:
+  pythonRequirements:
+      layer: true
+      slim: true
+      noDeploy:
+        - boto3
+        - botocore
+        - setuptools
+        - wheel
+      
+provider:
+  timeout: 900
+  name: aws
+  runtime: python3.8
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+      - 's3:PutObject'
+      Resource:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:s3:::'
+            - Ref: TradesBucket
+            - '/*'
+    - Effect: 'Allow'
+      Action:
+      - 'sqs:*'
+      Resource:
+       - !GetAtt WorkQueue.Arn
+
+package:
+  include:
+  - '!./**'
+  - ./download_trades_lambdas/**
+  exclude:
+  - '**'
+
+functions:
+  splitwork:
+    handler: download_trades_lambdas.handler.split_work
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - SplitWorkQueue
+              - Arn
+          batchSize: 1
+    environment:
+      WORK_QUEUE : !Ref WorkQueue
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+  download:
+    reservedConcurrency: 5
+    handler: download_trades_lambdas.handler.download
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt:
+              - WorkQueue
+              - Arn
+    layers:
+    - { Ref: PythonRequirementsLambdaLayer }
+resources:
+  Resources:
+    TradesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: np-trades-2020
+
+    SplitWorkQueue: 
+      Type: AWS::SQS::Queue
+      Properties: 
+        QueueName: "trades-split-work-queue"
+    WorkQueue: 
+      Type: AWS::SQS::Queue
+      Properties: 
+        QueueName: "trades-work-queue"
+
+plugins:
+  - serverless-python-requirements
